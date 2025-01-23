@@ -20,6 +20,7 @@ public class Contract {
     @JoinColumn(name = "company_id")
     private Company company;
 
+    
     @ManyToMany
     @JoinTable(
             name = "contract_person",
@@ -27,6 +28,7 @@ public class Contract {
             inverseJoinColumns = @JoinColumn(name = "person_id")
     )
     private Set<Person> persons;
+
     public Long getId() {
         return id;
     }

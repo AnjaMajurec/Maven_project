@@ -10,12 +10,8 @@ public class Person {
 
     private String name;
 
-    @ManyToMany
-    @JoinTable(
-            name="person_contract",
-            joinColumns = @JoinColumn(name="person_id"),
-            inverseJoinColumns=@JoinColumn(name = "contract_id")
-    )
+
+    @ManyToMany(mappedBy = "persons")
     private Set<Contract> contracts;
 
     public Long getId(){
