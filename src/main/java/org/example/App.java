@@ -1,99 +1,120 @@
 package org.example;
-import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
-import java.time.LocalDate;
-import java.util.Arrays;
-import java.util.List;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
+import org.hibernate.cfg.Configuration;
+import java.math.BigDecimal;
 
 public class App {
-    public static void main( String[] args ) {
-        EntityManagerFactory emf= Persistence.createEntityManagerFactory("JpaExampleUnit");
-        EntityManager em=emf.createEntityManager();
+
+    private static SessionFactory sessionFactory;
+
+    public static void main(String[] args) {
+
+        sessionFactory = new Configuration()
+                .setProperty("hibernate.dialect", "org.hibernate.dialect.SQLServerDialect")
+                .setProperty("hibernate.connection.driver_class", "com.microsoft.sqlserver.jdbc.SQLServerDriver")
+                .setProperty("hibernate.connection.url", "jdbc:sqlserver://localhost:1433;databaseName=AdventureWorksOBP;encrypt=true;trustServerCertificate=true")
+                .setProperty("hibernate.connection.username", "root")
+                .setProperty("hibernate.connection.password", "password")
+                .setProperty("hibernate.hbm2ddl.auto", "update")
+                .setProperty("hibernate.show_sql", "true")
+                .setProperty("hibernate.format_sql", "true")
+                .addAnnotatedClass(Product.class)
+                .buildSessionFactory();
+
+        addProduct(new Product ("iPhone", BigDecimal.valueOf(1100)));
+        addProduct(new Product ("AirPods", BigDecimal.valueOf(250)));
+        updateProduct(1L,BigDecimal.valueOf(1400));
+        selectProduct(1L);
+        deleteProduct(1L);
+
+        sessionFactory.close();
+    }
+    public static void addProduct(Product product){
+        Session session=sessionFactory.openSession();
+        Transaction transaction=null;
 
         try{
-            em.getTransaction().begin();
-
-            Subject subject1 = new Subject();
-            subject1.setName("Physics");
-            subject1.setDescription("Subject for 7th grade");
-            subject1.setProfessor("prof. Domokuš");
-
-            Subject subject2 = new Subject();
-            subject2.setName("Mathematics");
-            subject2.setDescription("Subject for 8th grade");
-            subject2.setProfessor("prof. Viljevac");
-
-            Student student1 = new Student();
-            student1.setName("Anja");
-            student1.setSurname("Majurec");
-
-            Student student2 = new Student();
-            student2.setName("Iva");
-            student2.setSurname("Foret");
-
-            student1.setSubjects(Arrays.asList(subject1,subject2));
-            student2.setSubjects((Arrays.asList(subject2)));
-
-            Grade student1grade = new Grade();
-            student1grade.setValue(5);
-            student1grade.setDate(LocalDate.of(2025,1,1));
-            student1grade.setStudent(student1);
-            student1grade.setSubject(subject2);
-
-            Grade student2grade = new Grade();
-            student2grade.setValue(4);
-            student2grade.setDate(LocalDate.of(2025,1,5));
-            student2grade.setStudent(student2);
-            student2grade.setSubject(subject2);
-
-            em.persist(subject1);
-            em.persist(subject2);
-            em.persist(student1);
-            em.persist(student2);
-            em.persist(student1grade);
-            em.persist(student2grade);
-
-            em.getTransaction().commit();
-
-            String query1 = "SELECT s FROM Student s JOIN s.subjects sub WHERE sub.name = :subjectName";
-            List<Student> mathsStudents = em.createQuery(query1, Student.class)
-                    .setParameter("subjectName", "Mathematics")
-                    .getResultList();
-
-
-            System.out.println("Učenici koji slušaju predmet matematiku: ");
-            for (Student student : mathsStudents) {
-                System.out.println(student.getName() + " " + student.getSurname());
+            transaction=session.beginTransaction();
+            session.save(product);
+            transaction.commit();
+            System.out.println("Product added successfully!");
+        }catch(Exception e){
+            if(transaction!=null) {
+                transaction.rollback();
             }
-
-            String query2 = "SELECT g FROM Grade g WHERE g.student.id = :studentId AND g.subject.name = :subjectName";
-            List<Grade> gradesForStudentAndSubject = em.createQuery(query2, Grade.class)
-                    .setParameter("studentId", student1.getId())
-                    .setParameter("subjectName", "Mathematics")
-                    .getResultList();
-
-            System.out.println("Ocjene za učenika:"+student1.getName()+" "+student1.getSurname()+" za predmet Matematika: ");
-            for (Grade grade : gradesForStudentAndSubject) {
-                System.out.println("Ocjena: " + grade.getValue() + ", Datum: " + grade.getDate());
-            }
-
-            String query3 = "SELECT AVG(g.value) FROM Grade g WHERE g.subject.name = :subjectName";
-            Double averageGradeForSubject = em.createQuery(query3, Double.class)
-                    .setParameter("subjectName", "Mathematics")
-                    .getSingleResult();
-
-            System.out.println("Prosječna ocjena za predmet Matematika: " + averageGradeForSubject);
-
-
-
-
-        }catch (Exception e) {
             e.printStackTrace();
+        }finally{
+            session.close();
         }
+    }
 
+    public static void updateProduct(Long productId, BigDecimal newPrice){
+        Session session=sessionFactory.openSession();
+        Transaction transaction=null;
+        try{
+            transaction = session.beginTransaction();
+            Product product=session.get(Product.class,productId);
+            if(product!=null){
+                product.setPrice(newPrice);
+                session.update(product);
+                transaction.commit();
+                System.out.println("Product price updated successfully!");
+            }
+            else{
+                System.out.println("Product not found. Try again!");
+            }
+        }catch (Exception e) {
+            if (transaction != null) transaction.rollback();
+            e.printStackTrace();
+        } finally {
+            session.close();
+        }
+    }
+    public static void selectProduct(Long productId){
+        Session session=sessionFactory.openSession();
+        try{
+            Product product=session.get(Product.class,productId);
+            if(product!=null){
+                System.out.println("Product: "+product.getName()+" with price "+product.getPrice()+".");
+            }
+            else{
+                System.out.println("Product not found. Try again!");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            session.close();
+        }
+    }
+    public static void deleteProduct(Long productId){
+        Session session=sessionFactory.openSession();
+        Transaction transaction=null;
+
+        try{
+            transaction=session.beginTransaction();
+            Product product=session.get(Product.class,productId);
+            if(product!=null){
+                session.delete(product);
+                transaction.commit();
+                System.out.println("Product deleted successfully!");
+            }else{
+                System.out.println("Product not found. Try again!");
+            }
+        }catch(Exception e){
+            if(transaction!=null){
+                transaction.rollback();
+            }
+            e.printStackTrace();
+        }finally {
+            session.close();
+        }
     }
 }
+
 
 
 
