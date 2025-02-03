@@ -1,121 +1,119 @@
 package org.example;
-import jakarta.persistence.EntityManagerFactory;
-import jakarta.persistence.Persistence;
-import org.hibernate.Session;
-import org.hibernate.SessionFactory;
-import org.hibernate.Transaction;
+import org.hibernate.*;
 import org.hibernate.cfg.Configuration;
-import java.math.BigDecimal;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import org.hibernate.query.Query;
+
 
 public class App {
-
-    private static SessionFactory sessionFactory;
+    private static final SessionFactory sessionFactory = new Configuration().configure().buildSessionFactory();
 
     public static void main(String[] args) {
 
-        sessionFactory = new Configuration()
-                .setProperty("hibernate.dialect", "org.hibernate.dialect.SQLServerDialect")
-                .setProperty("hibernate.connection.driver_class", "com.microsoft.sqlserver.jdbc.SQLServerDriver")
-                .setProperty("hibernate.connection.url", "jdbc:sqlserver://localhost:1433;databaseName=AdventureWorksOBP;encrypt=true;trustServerCertificate=true")
-                .setProperty("hibernate.connection.username", "root")
-                .setProperty("hibernate.connection.password", "password")
-                .setProperty("hibernate.hbm2ddl.auto", "update")
-                .setProperty("hibernate.show_sql", "true")
-                .setProperty("hibernate.format_sql", "true")
-                .addAnnotatedClass(Product.class)
+        SessionFactory factory = new Configuration().configure("hibernate.cfg.xml")
+                .addAnnotatedClass(Author.class)
+                .addAnnotatedClass(Book.class)
+                .addAnnotatedClass(Publisher.class)
                 .buildSessionFactory();
 
-        addProduct(new Product ("iPhone", BigDecimal.valueOf(1100)));
-        addProduct(new Product ("AirPods", BigDecimal.valueOf(250)));
-        updateProduct(1L,BigDecimal.valueOf(1400));
-        selectProduct(1L);
-        deleteProduct(1L);
+        Session session = factory.getCurrentSession();
 
-        sessionFactory.close();
-    }
-    public static void addProduct(Product product){
-        Session session=sessionFactory.openSession();
-        Transaction transaction=null;
+        try {
+            Author author1 = new Author();
+            author1.setName("Kristijan Novak");
 
-        try{
-            transaction=session.beginTransaction();
-            session.save(product);
-            transaction.commit();
-            System.out.println("Product added successfully!");
-        }catch(Exception e){
-            if(transaction!=null) {
-                transaction.rollback();
-            }
-            e.printStackTrace();
-        }finally{
-            session.close();
-        }
-    }
+            Author author2 = new Author();
+            author2.setName("Khaleid Hosseini");
 
-    public static void updateProduct(Long productId, BigDecimal newPrice){
-        Session session=sessionFactory.openSession();
-        Transaction transaction=null;
-        try{
-            transaction = session.beginTransaction();
-            Product product=session.get(Product.class,productId);
-            if(product!=null){
-                product.setPrice(newPrice);
-                session.update(product);
-                transaction.commit();
-                System.out.println("Product price updated successfully!");
-            }
-            else{
-                System.out.println("Product not found. Try again!");
-            }
-        }catch (Exception e) {
-            if (transaction != null) transaction.rollback();
-            e.printStackTrace();
+            Publisher publisher1 = new Publisher();
+            publisher1.setName("Znanje");
+
+            Publisher publisher2 = new Publisher();
+            publisher2.setName("Mozaik");
+
+            Book book1 = new Book();
+            book1.setTitle("Slučaj vlastite pogibelji");
+            book1.setAuthor(author1);
+
+            Book book2 = new Book();
+            book2.setTitle("Gonič zmajeva");
+            book2.setAuthor(author2);
+
+            Set<Book> books1 = new HashSet<>();
+            books1.add(book1);
+            author1.setBooks(books1);
+
+            Set<Book> books2 = new HashSet<>();
+            books2.add(book2);
+            author2.setBooks(books2);
+
+            Set<Author> authors1 = new HashSet<>();
+            authors1.add(author1);
+            publisher1.setAuthors(authors1);
+
+            Set<Author> authors2 = new HashSet<>();
+            authors2.add(author2);
+            publisher2.setAuthors(authors2);
+
+            session.beginTransaction();
+
+            session.save(author1);
+            session.save(author2);
+            session.save(book1);
+            session.save(book2);
+            session.save(publisher1);
+            session.save(publisher2);
+
+            session.getTransaction().commit();
+
+            fetchAllAuthorsAndBooks(session);
+
+            updateBookTitles(session, 1, "Novi naslov knjige");
+
+            deleteBook(session, 1);
+
         } finally {
-            session.close();
+            factory.close();
         }
     }
-    public static void selectProduct(Long productId){
-        Session session=sessionFactory.openSession();
-        try{
-            Product product=session.get(Product.class,productId);
-            if(product!=null){
-                System.out.println("Product: "+product.getName()+" with price "+product.getPrice()+".");
-            }
-            else{
-                System.out.println("Product not found. Try again!");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            session.close();
-        }
-    }
-    public static void deleteProduct(Long productId){
-        Session session=sessionFactory.openSession();
-        Transaction transaction=null;
 
-        try{
-            transaction=session.beginTransaction();
-            Product product=session.get(Product.class,productId);
-            if(product!=null){
-                session.delete(product);
-                transaction.commit();
-                System.out.println("Product deleted successfully!");
-            }else{
-                System.out.println("Product not found. Try again!");
+    public static void deleteBook(Session session, long bookId) {
+        String hql = "DELETE FROM Book WHERE id = :bookId";
+        Query query = session.createQuery(hql);
+        query.setParameter("bookId", bookId);
+
+        int result = query.executeUpdate();
+        System.out.println("Rows affected: " + result);
+    }
+
+
+
+
+    public static void updateBookTitles(Session session, long bookId, String newTitle) {
+        String hql = "UPDATE Book b SET b.title = :newTitle WHERE b.id = :bookId";
+        Query query = session.createQuery(hql);
+        query.setParameter("newTitle", newTitle);
+        query.setParameter("bookId", bookId);
+
+        int result = query.executeUpdate();
+        System.out.println("Rows affected: " + result);
+    }
+
+    public static void fetchAllAuthorsAndBooks(Session session) {
+        String hql = "FROM Author a LEFT JOIN FETCH a.books";
+        Query<Author> query = session.createQuery(hql, Author.class);
+        query.setFetchSize(50);
+        List<Author> authors = query.list();
+
+        for (Author author : authors) {
+            System.out.println("Author: " + author.getName());
+            for (Book book : author.getBooks()) {
+                System.out.println("Book Title: " + book.getTitle());
             }
-        }catch(Exception e){
-            if(transaction!=null){
-                transaction.rollback();
-            }
-            e.printStackTrace();
-        }finally {
-            session.close();
         }
     }
+
+
 }
-
-
-
-
-
