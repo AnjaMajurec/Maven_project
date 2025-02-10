@@ -17,6 +17,14 @@
         <property name="hibernate.format_sql">false</property>
         <property name="hibernate.hbm2ddl.auto">update</property>
 
+        <mapping class="org.example.MyOrder"/>
+        <mapping class="org.example.Product"/>
+        <mapping class="org.example.HibernateUtil"/>
+        <mapping class="org.example.HibernateOrder"/>
+
+
+
+
 
     </session-factory>
 </hibernate-configuration>
