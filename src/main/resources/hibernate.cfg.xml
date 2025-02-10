@@ -17,11 +17,6 @@
         <property name="hibernate.format_sql">false</property>
         <property name="hibernate.hbm2ddl.auto">update</property>
 
-        <!-- Registracija entiteta -->
-        <mapping class="org.example.Author"/>
-        <mapping class="org.example.Book"/>
-        <mapping class="org.example.Publisher"/>
-
 
     </session-factory>
 </hibernate-configuration>

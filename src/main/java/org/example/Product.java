@@ -2,43 +2,51 @@ package org.example;
 
 import jakarta.persistence.*;
 
-import java.math.BigDecimal;
-
 @Entity
-@Table(name = "products")
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int productId;
+    private Long id;
+
+    @Column(name="name")
     private String name;
-    private BigDecimal quantity;
 
-    public Product() {
+    @Column(name="price")
+    private Double price;
+
+    @ManyToOne
+    @JoinColumn(name="order_id")
+    private MyOrder order;
+
+    public Long getId() {
+        return id;
     }
 
-    public Product(String name, BigDecimal quantity) {
-        this.name = name;
-        this.quantity = quantity;
-    }
-
-    public int getProductId() {
-        return productId;
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getName() {
         return name;
     }
 
-    public BigDecimal getQuantity() {
-        return quantity;
+    public void setName(String name) {
+        this.name = name;
     }
 
-    public void setQuantity(BigDecimal quantity) {
-        this.quantity = quantity;
+    public Double getPrice() {
+        return price;
     }
 
-    @Override
-    public String toString() {
-        return String.format("Product(ID: %d, Name: %s, Quantity: %s)", productId, name, quantity);
+    public void setPrice(Double price) {
+        this.price = price;
+    }
+
+    public MyOrder getOrder() {
+        return order;
+    }
+
+    public void setOrder(MyOrder order) {
+        this.order = order;
     }
 }
