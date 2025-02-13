@@ -1,28 +1,62 @@
 package org.example;
-import java.util.Arrays;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+
+import java.util.Scanner;
 
 public class App {
 
     public static void main(String[] args) {
-        HibernateOrder hibernate = new HibernateOrder();
-
-        Product product1 = new Product();
-        product1.setName("Apple Watch2");
-        product1.setPrice(350.0);
+        Scanner scanner = new Scanner(System.in);
 
 
-        Product product2 = new Product();
-        product2.setName("iWallet");
-        product2.setPrice(100.0);
 
-        MyOrder order = new MyOrder();
-        order.setOrderDate("2025-02-10");
-        product1.setOrder(order);
-        product2.setOrder(order);
+        while (true) {
+            System.out.println("IZBORNIK: 1 - Unesi novog polaznika");
+            System.out.println("2 - Unos novog programa obrazovanja");
+            System.out.println("3 - Upiši polaznika na program obrazovanja");
+            System.out.println("4 - Prebaci polaznika iz jednog u drugi program obrazovanja");
+            System.out.println("5 - Ispis polaznika određenog programa obradovanja (po ID-ju)");
+            System.out.println("6 - Kraj");
+            System.out.println("Molim Vas izaberite jednu od ponuđenih opcija: ");
 
-        order.setProducts(Arrays.asList(product1,product2));
-        hibernate.addOrder(order);
-        hibernate.deleteOrder(12l);
+            int unos = scanner.nextInt();
+            scanner.nextLine();
 
+            switch (unos) {
+                case 1:
+                    unosNovogPolaznika(scanner);
+                    break;
+
+                case 2:
+                    System.out.println("Izašli ste iz aplikacije.");
+                    return;
+
+                default:
+                    System.out.println("Krivi unos. Probajte ponovno.");
+            }
+        }
+    }
+    public static void unosNovogPolaznika(Scanner scanner) {
+        System.out.println("Unesite ime polaznika: ");
+        String ime = scanner.nextLine();
+        System.out.println("Unesite prezime polaznika: ");
+        String prezime = scanner.nextLine();
+
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        Transaction transaction = null;
+
+        try {
+            transaction = session.beginTransaction();
+            Polaznik polaznik = new Polaznik(ime, prezime);
+            session.save(polaznik);
+            transaction.commit();
+            System.out.println("Polaznik " + ime + " " + prezime + " je uspješno unesen u bazu.");
+        } catch (Exception e) {
+            if (transaction != null) transaction.rollback();
+            e.printStackTrace();
+        } finally {
+            session.close();
+        }
     }
 }
